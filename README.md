@@ -7,25 +7,25 @@ This tool is designed with pharmaceutical data privacy in mind. Your sensitive c
 
 **Features**
 
-📤 File Upload: Support for Excel (.xlsx, .xls) and CSV files
+File Upload: Support for Excel (.xlsx, .xls) and CSV files
 
-🔍 Global Search: Search across all columns instantly
+Global Search: Search across all columns instantly
 
-📊 Advanced Filtering: Multi-select filters with smart date range detection
+Advanced Filtering: Multi-select filters with smart date range detection
 
-↕️ Sorting: Click any column header to sort ascending/descending
+Sorting: Click any column header to sort ascending/descending
 
-📥 Export: Download filtered results back to Excel
+Export: Download filtered results back to Excel
 
 **Column Management**
 
-👁️ Show/Hide Columns: Toggle column visibility
+Show/Hide Columns: Toggle column visibility
 
-🔒 Freeze Columns: Keep important columns visible while scrolling
+Freeze Columns: Keep important columns visible while scrolling
 
-↔️ Reorder Columns: Drag and drop to rearrange
+Reorder Columns: Drag and drop to rearrange
 
-💾 Saved Views: Save and restore column configurations
+Saved Views: Save and restore column configurations
 
 **Data Quality (QC) Checks**
 
@@ -39,11 +39,11 @@ Results View: See all flagged rows with one click
 
 **Analysis Tools**
 
-📈 Column Statistics: View data distribution, fill rates, top values with percentages
+Column Statistics: View data distribution, fill rates, top values with percentages
 
-🔄 Duplicate Detection: Find duplicate rows based on selected columns
+Duplicate Detection: Find duplicate rows based on selected columns
 
-⚖️ Version Comparison: Compare two file versions to see added, removed, and modified cases
+Version Comparison: Compare two file versions to see added, removed, and modified cases
 
 **Smart Date Filtering**
 
@@ -56,12 +56,14 @@ Quick Presets: Last 7/30/90 days, This year
 Blank Handling: Option to include/exclude empty dates
 
 
-**🚀 Quick Start**
+**Quick Start**
+
 Option 1: Use Online (Recommended)
 
 Visit: https://yourusername.github.io/pv-line-listing-analyzer
 
 Option 2: Run Locally
+
 Download index.html from this repository
 Open it in any modern web browser
 That's it! No installation required.
@@ -72,7 +74,7 @@ Host the index.html file on any web server
 Access via your server URL
 
 
-**📖 User Guide**
+** User Guide**
 Uploading Data
 
 Click "Select Excel/CSV File" on the landing page
@@ -121,16 +123,6 @@ Enter a name (e.g., "QC Review", "Medical Review")
 Load saved views anytime from the Views menu
 
 
-**🖥️ Browser Requirements**
-BrowserMinimum VersionStatusChrome80+✅ Fully SupportedFirefox75+✅ Fully SupportedSafari13+✅ Fully SupportedEdge80+✅ Fully SupportedInternet ExplorerAny❌ Not Supported
-
-**Requirements:**
-
-JavaScript must be enabled
-Internet connection required on first load (for CDN libraries)
-Recommended: Desktop or tablet (mobile has limited support)
-
-
 
 **Architecture**
 
@@ -142,7 +134,7 @@ Zero server-side processing
 
 
 
-**⚠️ Disclaimer**
+**Disclaimer**
 This tool is for internal analysis purposes.
 
 Not validated for regulated pharmacovigilance activities
