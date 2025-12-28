@@ -5,8 +5,7 @@ A powerful, browser-based tool for analyzing pharmacovigilance (PV) line listing
 All data processing happens locally in your browser. No data is ever uploaded to any server.
 This tool is designed with pharmaceutical data privacy in mind. Your sensitive case data never leaves your computer.
 
-**✨ Features**
-Core Functionality
+**Features**
 
 📤 File Upload: Support for Excel (.xlsx, .xls) and CSV files
 🔍 Global Search: Search across all columns instantly
@@ -45,20 +44,19 @@ Blank Handling: Option to include/exclude empty dates
 **🚀 Quick Start**
 Option 1: Use Online (Recommended)
 Visit: https://yourusername.github.io/pv-line-listing-analyzer
-Option 2: Run Locally
 
+Option 2: Run Locally
 Download index.html from this repository
 Open it in any modern web browser
 That's it! No installation required.
 
 Option 3: Self-Host
-
 Clone this repository
 Host the index.html file on any web server
 Access via your server URL
 
 
-📖 User Guide
+**📖 User Guide**
 Uploading Data
 
 Click "Select Excel/CSV File" on the landing page
@@ -87,8 +85,7 @@ Enter rule name and category
 Select field, operator, and value
 Save and run
 
-
-**Comparing Versions**
+Comparing Versions
 
 Click "Compare" in the toolbar
 Upload the previous version of your file
@@ -100,7 +97,7 @@ Removed: Cases deleted from previous
 Modified: Cases with changed values
 Unchanged: Identical cases
 
-**Saving Views**
+Saving Views
 
 Configure columns (show/hide, freeze, reorder)
 Click "Views" → "Save Current"
