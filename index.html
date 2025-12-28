@@ -72,7 +72,7 @@ const OPERATORS=[
 const DEFAULT_RULES=[
   {id:'r1',name:'Missing Case Number',cat:'Missing Data',conditions:[{field:'',op:'is_empty'}],fieldHints:['case','caseid'],builtin:true},
   {id:'r2',name:'Missing Product',cat:'Missing Data',conditions:[{field:'',op:'is_empty'}],fieldHints:['product','drug'],builtin:true},
-  {id:'r3',name:'Missing PT',cat:'Missing Data',conditions:[{field:'',op:'is_empty'}],fieldHints:['pt','preferred term'],builtin:true},
+  {id:'r3',name:'Missing PT',cat:'Missing Data',conditions:[{field:'',op:'is_empty'}],fieldHints:['event pt','preferred term'],builtin:true},
   {id:'r4',name:'Future Receipt Date',cat:'Date Validation',conditions:[{field:'',op:'date_after_today'}],fieldHints:['receipt','aware'],builtin:true},
   {id:'r5',name:'Future Onset Date',cat:'Date Validation',conditions:[{field:'',op:'date_after_today'}],fieldHints:['onset'],builtin:true},
   {id:'r6',name:'Short Narrative',cat:'Data Quality',conditions:[{field:'',op:'length_lt',value:'20'}],fieldHints:['narrative','summary'],builtin:true},
