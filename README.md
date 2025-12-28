@@ -8,6 +8,7 @@ This tool is designed with pharmaceutical data privacy in mind. Your sensitive c
 **Features**
 
 📤 File Upload: Support for Excel (.xlsx, .xls) and CSV files
+
 🔍 Global Search: Search across all columns instantly
 📊 Advanced Filtering: Multi-select filters with smart date range detection
 ↕️ Sorting: Click any column header to sort ascending/descending
