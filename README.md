@@ -20,33 +20,45 @@ This tool is designed with pharmaceutical data privacy in mind. Your sensitive c
 **Column Management**
 
 👁️ Show/Hide Columns: Toggle column visibility
+
 🔒 Freeze Columns: Keep important columns visible while scrolling
+
 ↔️ Reorder Columns: Drag and drop to rearrange
+
 💾 Saved Views: Save and restore column configurations
 
 **Data Quality (QC) Checks**
 
 Built-in Rules: Pre-configured validation rules for common PV data issues
+
 Custom Rules: Create your own validation rules with 12+ operators
+
 Auto-Mapping: Automatically maps rules to your column names
+
 Results View: See all flagged rows with one click
 
 **Analysis Tools**
 
 📈 Column Statistics: View data distribution, fill rates, top values with percentages
+
 🔄 Duplicate Detection: Find duplicate rows based on selected columns
+
 ⚖️ Version Comparison: Compare two file versions to see added, removed, and modified cases
 
 **Smart Date Filtering**
 
 Auto-Detection: Automatically identifies date columns
+
 Range Picker: Filter by date range instead of individual values
+
 Quick Presets: Last 7/30/90 days, This year
+
 Blank Handling: Option to include/exclude empty dates
 
 
 **🚀 Quick Start**
 Option 1: Use Online (Recommended)
+
 Visit: https://yourusername.github.io/pv-line-listing-analyzer
 
 Option 2: Run Locally
