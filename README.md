@@ -1,7 +1,7 @@
 # line-listing-analyzer
 A powerful, browser-based tool for analyzing pharmacovigilance (PV) line listings. Built for drug safety professionals who work with case data in Excel format.
 
-**Privacy First**
+**Privacy First:**
 All data processing happens locally in your browser. No data is ever uploaded to any server.
 This tool is designed with pharmaceutical data privacy in mind. Your sensitive case data never leaves your computer.
 
