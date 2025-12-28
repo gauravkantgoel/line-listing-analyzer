@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Browser-based Line Listing Analyzer for pharmacovigilance professionals.">
+  <title>Line Listing Analyzer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .icon{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:middle}
+    .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000}
+    .modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;box-shadow:0 25px 50px rgba(0,0,0,0.3);z-index:1001}
+  </style>
+</head>
+<body class="bg-gray-50">
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useCallback,useMemo,useEffect}=React;
+
+const Icons={
+  Upload:()=><svg className="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
+  Filter:()=><svg className="icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+  X:()=><svg className="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  Search:()=><svg className="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  ChevronDown:()=><svg className="icon" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>,
+  ChevronUp:()=><svg className="icon" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>,
+  Download:()=><svg className="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+  BarChart:()=><svg className="icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+  Copy:()=><svg className="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+  AlertTriangle:()=><svg className="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  Plus:()=><svg className="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  Trash:()=><svg className="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+  Edit:()=><svg className="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  FileJson:()=><svg className="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+  RotateCcw:()=><svg className="icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>,
+  Check:()=><svg className="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>,
+  GitCompare:()=><svg className="icon" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></svg>,
+  Info:()=><svg className="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
+  Shield:()=><svg className="icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  Columns:()=><svg className="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>,
+  Lock:()=><svg className="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  Unlock:()=><svg className="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
+  Eye:()=><svg className="icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  EyeOff:()=><svg className="icon" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+  Save:()=><svg className="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>,
+  Bookmark:()=><svg className="icon" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
+  GripVertical:()=><svg className="icon" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>,
+};
+
+const BLANK='__BLANK__';
+
+const OPERATORS=[
+  {id:'is_empty',name:'Is Empty',type:'none'},
+  {id:'is_not_empty',name:'Is Not Empty',type:'none'},
+  {id:'equals',name:'Equals',type:'text'},
+  {id:'not_equals',name:'Not Equals',type:'text'},
+  {id:'contains',name:'Contains',type:'text'},
+  {id:'not_contains',name:'Not Contains',type:'text'},
+  {id:'gt',name:'Greater Than',type:'number'},
+  {id:'lt',name:'Less Than',type:'number'},
+  {id:'date_after_today',name:'Future Date',type:'none'},
+  {id:'date_before_today',name:'Past Date',type:'none'},
+  {id:'length_lt',name:'Length Less Than',type:'number'},
+  {id:'length_gt',name:'Length Greater Than',type:'number'},
+];
+
+const DEFAULT_RULES=[
+  {id:'r1',name:'Missing Case Number',cat:'Missing Data',conditions:[{field:'',op:'is_empty'}],fieldHints:['case','caseid'],builtin:true},
+  {id:'r2',name:'Missing Product',cat:'Missing Data',conditions:[{field:'',op:'is_empty'}],fieldHints:['product','drug'],builtin:true},
+  {id:'r3',name:'Missing PT',cat:'Missing Data',conditions:[{field:'',op:'is_empty'}],fieldHints:['pt','preferred term'],builtin:true},
+  {id:'r4',name:'Future Receipt Date',cat:'Date Validation',conditions:[{field:'',op:'date_after_today'}],fieldHints:['receipt','aware'],builtin:true},
+  {id:'r5',name:'Future Onset Date',cat:'Date Validation',conditions:[{field:'',op:'date_after_today'}],fieldHints:['onset'],builtin:true},
+  {id:'r6',name:'Short Narrative',cat:'Data Quality',conditions:[{field:'',op:'length_lt',value:'20'}],fieldHints:['narrative','summary'],builtin:true},
+  {id:'r7',name:'Invalid Age (>120)',cat:'Data Quality',conditions:[{field:'',op:'gt',value:'120'}],fieldHints:['age'],builtin:true},
+];
+
+const evalCond=(row,c)=>{
+  const v=row[c.field];
+  const s=String(v??'').trim();
+  const n=parseFloat(s);
+  switch(c.op){
+    case 'is_empty':return !s;
+    case 'is_not_empty':return !!s;
+    case 'equals':return s.toLowerCase()===String(c.value||'').toLowerCase();
+    case 'not_equals':return s.toLowerCase()!==String(c.value||'').toLowerCase();
+    case 'contains':return s.toLowerCase().includes(String(c.value||'').toLowerCase());
+    case 'not_contains':return !s.toLowerCase().includes(String(c.value||'').toLowerCase());
+    case 'gt':return !isNaN(n)&&n>parseFloat(c.value);
+    case 'lt':return !isNaN(n)&&n<parseFloat(c.value);
+    case 'date_after_today':return !isNaN(new Date(v))&&new Date(v)>new Date();
+    case 'date_before_today':return !isNaN(new Date(v))&&new Date(v)<new Date();
+    case 'length_lt':return s.length>0&&s.length<parseInt(c.value);
+    case 'length_gt':return s.length>parseInt(c.value);
+    default:return false;
+  }
+};
+
+// Filter Modal
+const FilterModal=({col,data,filters,setFilters,onClose})=>{
+  const [search,setSearch]=useState('');
+  const [sel,setSel]=useState(filters[col]?.values||[]);
+  const [dateRange,setDateRange]=useState(filters[col]?.dateRange||{from:'',to:''});
+  
+  // Detect if column is date type
+  const colInfo=useMemo(()=>{
+    const all=data.map(r=>r[col]);
+    const nonEmpty=all.filter(v=>v&&String(v).trim());
+    
+    // Check if it's a date column
+    let dateCount=0;
+    const dateVals=[];
+    nonEmpty.forEach(v=>{
+      const d=v instanceof Date?v:new Date(v);
+      if(!isNaN(d)&&d.getFullYear()>1900&&d.getFullYear()<2100){
+        dateCount++;
+        dateVals.push(d);
+      }
+    });
+    const isDate=nonEmpty.length>0&&dateCount/nonEmpty.length>0.7;
+    
+    let minDate=null,maxDate=null;
+    if(isDate&&dateVals.length){
+      minDate=new Date(Math.min(...dateVals));
+      maxDate=new Date(Math.max(...dateVals));
+    }
+    
+    const hasBlank=all.some(v=>!v||!String(v).trim());
+    const list=_.uniq(all.filter(v=>v&&String(v).trim()).map(v=>{
+      if(isDate){
+        const d=v instanceof Date?v:new Date(v);
+        return !isNaN(d)?d.toISOString().split('T')[0]:String(v);
+      }
+      return String(v);
+    })).sort();
+    
+    return {isDate,hasBlank,list,minDate,maxDate};
+  },[data,col]);
+  
+  const filtered=search?colInfo.list.filter(v=>String(v).toLowerCase().includes(search.toLowerCase())):colInfo.list;
+  const toggle=v=>setSel(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
+  
+  const apply=()=>{
+    if(colInfo.isDate){
+      // For date columns, use range filter
+      if(!dateRange.from&&!dateRange.to&&!sel.includes(BLANK)){
+        setFilters(p=>{const n={...p};delete n[col];return n;});
+      }else{
+        setFilters(p=>({...p,[col]:{type:'date',dateRange,includeBlank:sel.includes(BLANK)}}));
+      }
+    }else{
+      // For non-date columns, use value selection
+      if(!sel.length){
+        setFilters(p=>{const n={...p};delete n[col];return n;});
+      }else{
+        setFilters(p=>({...p,[col]:{type:'values',values:sel}}));
+      }
+    }
+    onClose();
+  };
+  
+  const clearDateRange=()=>{setDateRange({from:'',to:''});setSel([]);};
+  
+  const formatDate=d=>d?d.toISOString().split('T')[0]:'';
+  
+  return <><div className="modal-overlay" onClick={onClose}/><div className="modal" style={{width:420,maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
+    <div className="p-4 border-b flex justify-between items-center">
+      <div>
+        <span className="font-semibold">Filter: {col}</span>
+        {colInfo.isDate&&<span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">Date</span>}
+      </div>
+      <button onClick={onClose}><Icons.X/></button>
+    </div>
+    
+    {colInfo.isDate?<>
+      {/* Date Range Filter */}
+      <div className="p-4 border-b">
+        <div className="text-sm font-medium mb-3">Date Range</div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500">From</label>
+            <input type="date" className="w-full px-3 py-2 border rounded mt-1" value={dateRange.from} onChange={e=>setDateRange(p=>({...p,from:e.target.value}))} min={formatDate(colInfo.minDate)} max={formatDate(colInfo.maxDate)}/>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500">To</label>
+            <input type="date" className="w-full px-3 py-2 border rounded mt-1" value={dateRange.to} onChange={e=>setDateRange(p=>({...p,to:e.target.value}))} min={formatDate(colInfo.minDate)} max={formatDate(colInfo.maxDate)}/>
+          </div>
+        </div>
+        {colInfo.minDate&&colInfo.maxDate&&<div className="text-xs text-gray-400 mt-2">Range: {formatDate(colInfo.minDate)} to {formatDate(colInfo.maxDate)}</div>}
+        
+        {/* Quick date presets */}
+        <div className="flex flex-wrap gap-2 mt-3">
+          <button onClick={()=>{const t=new Date();const f=new Date();f.setDate(f.getDate()-7);setDateRange({from:formatDate(f),to:formatDate(t)});}} className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">Last 7 days</button>
+          <button onClick={()=>{const t=new Date();const f=new Date();f.setDate(f.getDate()-30);setDateRange({from:formatDate(f),to:formatDate(t)});}} className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">Last 30 days</button>
+          <button onClick={()=>{const t=new Date();const f=new Date();f.setDate(f.getDate()-90);setDateRange({from:formatDate(f),to:formatDate(t)});}} className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">Last 90 days</button>
+          <button onClick={()=>{const t=new Date();const f=new Date(t.getFullYear(),0,1);setDateRange({from:formatDate(f),to:formatDate(t)});}} className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200">This year</button>
+          <button onClick={clearDateRange} className="text-xs px-2 py-1 text-red-600 hover:bg-red-50 rounded">Clear</button>
+        </div>
+      </div>
+      
+      {/* Include blanks option for dates */}
+      {colInfo.hasBlank&&<div className="px-4 py-3 border-b">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={sel.includes(BLANK)} onChange={()=>toggle(BLANK)} className="w-4 h-4"/>
+          <span className="text-sm">Include blank/empty values</span>
+          <span className="text-xs text-amber-600">({data.filter(r=>!r[col]||!String(r[col]).trim()).length} rows)</span>
+        </label>
+      </div>}
+    </>:<>
+      {/* Standard Value Filter */}
+      <div className="p-3 border-b"><input className="w-full px-3 py-2 border rounded" placeholder="Search values..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+      <div className="px-3 py-2 border-b flex gap-3 bg-gray-50">
+        <button onClick={()=>setSel([...colInfo.list,colInfo.hasBlank?BLANK:null].filter(Boolean))} className="text-sm text-blue-600">All</button>
+        <button onClick={()=>setSel([])} className="text-sm text-red-600">Clear</button>
+        <span className="ml-auto text-sm text-gray-500">{sel.length} selected</span>
+      </div>
+      <div className="flex-1 overflow-auto">
+        {colInfo.hasBlank&&!search&&<div onClick={()=>toggle(BLANK)} className={`flex items-center gap-2 px-3 py-2 cursor-pointer border-b ${sel.includes(BLANK)?'bg-amber-100':'bg-amber-50'}`}>
+          <input type="checkbox" checked={sel.includes(BLANK)} readOnly/><span className="italic text-amber-700">(Blank)</span></div>}
+        {filtered.slice(0,200).map(v=><div key={String(v)} onClick={()=>toggle(String(v))} className={`flex items-center gap-2 px-3 py-2 cursor-pointer border-b ${sel.includes(String(v))?'bg-blue-50':''}`}>
+          <input type="checkbox" checked={sel.includes(String(v))} readOnly/><span>{String(v)}</span></div>)}
+        {filtered.length>200&&<div className="p-3 text-center text-xs text-gray-500">Showing 200 of {filtered.length}</div>}
+      </div>
+    </>}
+    
+    <div className="p-3 border-t flex justify-end gap-2">
+      <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+      <button onClick={apply} className="px-4 py-2 bg-blue-600 text-white rounded">Apply</button>
+    </div>
+  </div></>;
+};
+
+// Stats Modal
+const StatsModal=({col,data,onClose})=>{
+  const s=useMemo(()=>{
+    const all=data.map(r=>r[col]),total=all.length;
+    const blank=all.filter(v=>!v||!String(v).trim()).length;
+    const filled=total-blank;
+    const uniq=_.uniq(all.filter(v=>v&&String(v).trim()).map(String)).length;
+    const top=Object.entries(_.countBy(all.filter(v=>v&&String(v).trim()),String)).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const nums=all.filter(v=>!isNaN(parseFloat(v))).map(v=>parseFloat(v));
+    const isNum=nums.length>total*0.3;
+    return {total,blank,filled,uniq,top,isNum,min:isNum?Math.min(...nums):0,max:isNum?Math.max(...nums):0,avg:isNum?nums.reduce((a,b)=>a+b,0)/nums.length:0};
+  },[data,col]);
+  
+  return <><div className="modal-overlay" onClick={onClose}/><div className="modal" style={{width:480,maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
+    <div className="p-4 border-b flex justify-between"><span className="font-semibold">Statistics: {col}</span><button onClick={onClose}><Icons.X/></button></div>
+    <div className="p-4 overflow-auto">
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-gray-50 p-3 rounded"><div className="text-2xl font-bold">{s.total.toLocaleString()}</div><div className="text-xs text-gray-500">Total</div></div>
+        <div className="bg-blue-50 p-3 rounded"><div className="text-2xl font-bold text-blue-700">{s.uniq.toLocaleString()}</div><div className="text-xs text-blue-600">Unique</div></div>
+        <div className="bg-green-50 p-3 rounded"><div className="text-2xl font-bold text-green-700">{s.filled.toLocaleString()}</div><div className="text-xs text-green-600">Filled ({(s.filled/s.total*100).toFixed(1)}%)</div></div>
+        <div className="bg-amber-50 p-3 rounded"><div className="text-2xl font-bold text-amber-700">{s.blank.toLocaleString()}</div><div className="text-xs text-amber-600">Blank ({(s.blank/s.total*100).toFixed(1)}%)</div></div>
+      </div>
+      <div className="mb-4"><div className="text-sm mb-1">Fill Rate</div><div className="h-3 bg-gray-200 rounded overflow-hidden"><div className="h-full bg-green-500" style={{width:`${s.filled/s.total*100}%`}}/></div></div>
+      {s.isNum&&<div className="bg-gray-50 p-3 rounded mb-4 grid grid-cols-3 gap-2 text-sm">
+        <div><span className="text-gray-500">Min:</span> {s.min.toFixed(2)}</div>
+        <div><span className="text-gray-500">Max:</span> {s.max.toFixed(2)}</div>
+        <div><span className="text-gray-500">Avg:</span> {s.avg.toFixed(2)}</div>
+      </div>}
+      {s.top.length>0&&<div><div className="font-medium mb-2">Top Values</div><table className="w-full text-sm"><tbody>
+        {s.top.map(([v,c])=><tr key={v} className="border-b"><td className="py-1 truncate max-w-[250px]">{v}</td><td className="py-1 text-right">{c}</td><td className="py-1 text-right text-gray-500">{(c/s.total*100).toFixed(1)}%</td></tr>)}
+      </tbody></table></div>}
+    </div>
+    <div className="p-3 border-t flex justify-end"><button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Close</button></div>
+  </div></>;
+};
+
+// Column Manager
+const ColManager=({columns,config,setConfig,frozen,setFrozen})=>{
+  const [open,setOpen]=useState(false);
+  const sorted=useMemo(()=>[...columns].sort((a,b)=>(config[a]?.order??0)-(config[b]?.order??0)),[columns,config]);
+  const vis=columns.filter(c=>config[c]?.visible!==false).length;
+  const toggle=c=>setConfig(p=>({...p,[c]:{...p[c],visible:p[c]?.visible===false}}));
+  const freeze=c=>setFrozen(p=>p.includes(c)?p.filter(x=>x!==c):[...p,c]);
+  const reset=()=>{const c={};columns.forEach((col,i)=>c[col]={visible:true,order:i});setConfig(c);setFrozen([]);};
+  
+  const onDrag=(from,to)=>{
+    const arr=[...sorted];const [m]=arr.splice(from,1);arr.splice(to,0,m);
+    const c={...config};arr.forEach((col,i)=>c[col]={...c[col],order:i});setConfig(c);
+  };
+  
+  return <div className="relative">
+    <button onClick={()=>setOpen(!open)} className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded text-sm hover:bg-gray-200"><Icons.Columns/>Columns ({vis}/{columns.length})</button>
+    {open&&<><div className="fixed inset-0 z-40" onClick={()=>setOpen(false)}/>
+    <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-xl z-50 w-72" style={{maxHeight:'60vh',display:'flex',flexDirection:'column'}}>
+      <div className="p-2 border-b flex justify-between items-center"><span className="text-sm font-medium">Columns</span><button onClick={reset} className="text-xs text-blue-600">Reset</button></div>
+      <div className="flex-1 overflow-auto">
+        {sorted.map((col,i)=><div key={col} draggable onDragStart={e=>e.dataTransfer.setData('idx',i)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();onDrag(+e.dataTransfer.getData('idx'),i);}}
+          className={`flex items-center gap-2 px-2 py-1.5 border-b cursor-move hover:bg-gray-50 ${config[col]?.visible===false?'opacity-50':''}`}>
+          <Icons.GripVertical/><span className="flex-1 text-sm truncate">{col}</span>
+          <button onClick={()=>toggle(col)} className={config[col]?.visible===false?'text-gray-400':'text-green-600'}>{config[col]?.visible===false?<Icons.EyeOff/>:<Icons.Eye/>}</button>
+          <button onClick={()=>freeze(col)} className={frozen.includes(col)?'text-blue-600':'text-gray-400'}>{frozen.includes(col)?<Icons.Lock/>:<Icons.Unlock/>}</button>
+        </div>)}
+      </div>
+    </div></>}
+  </div>;
+};
+
+// Views Manager
+const ViewsManager=({views,setViews,config,frozen,applyView})=>{
+  const [open,setOpen]=useState(false);
+  const [name,setName]=useState('');
+  const [saving,setSaving]=useState(false);
+  const save=()=>{if(!name.trim())return;setViews(p=>[...p,{id:Date.now(),name:name.trim(),config:{...config},frozen:[...frozen]}]);setName('');setSaving(false);};
+  const del=id=>setViews(p=>p.filter(v=>v.id!==id));
+  
+  return <div className="relative">
+    <button onClick={()=>setOpen(!open)} className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded text-sm hover:bg-gray-200"><Icons.Bookmark/>Views{views.length>0&&<span className="bg-gray-300 px-1 rounded text-xs">{views.length}</span>}</button>
+    {open&&<><div className="fixed inset-0 z-40" onClick={()=>setOpen(false)}/>
+    <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-xl z-50 w-64">
+      <div className="p-2 border-b flex justify-between"><span className="text-sm font-medium">Saved Views</span><button onClick={()=>setOpen(false)}><Icons.X/></button></div>
+      {!saving?<>
+        <div className="max-h-48 overflow-auto">{views.length===0?<div className="p-4 text-center text-sm text-gray-500">No saved views</div>:
+          views.map(v=><div key={v.id} className="flex items-center gap-2 px-3 py-2 border-b hover:bg-gray-50">
+            <span className="flex-1 text-sm cursor-pointer" onClick={()=>{applyView(v);setOpen(false);}}>{v.name}</span>
+            <button onClick={()=>del(v.id)} className="text-gray-400 hover:text-red-600"><Icons.Trash/></button>
+          </div>)}</div>
+        <div className="p-2 border-t"><button onClick={()=>setSaving(true)} className="w-full px-3 py-2 bg-blue-600 text-white rounded text-sm"><Icons.Save/> Save Current</button></div>
+      </>:<div className="p-3">
+        <input className="w-full px-3 py-2 border rounded text-sm mb-2" placeholder="View name..." value={name} onChange={e=>setName(e.target.value)} autoFocus/>
+        <div className="flex gap-2"><button onClick={()=>setSaving(false)} className="flex-1 px-3 py-2 border rounded text-sm">Cancel</button><button onClick={save} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm">Save</button></div>
+      </div>}
+    </div></>}
+  </div>;
+};
+
+// Duplicate Modal
+const DupModal=({columns,data,onClose,onShow})=>{
+  const [sel,setSel]=useState([]);
+  const [res,setRes]=useState(null);
+  const find=()=>{const m=new Map();data.forEach((r,i)=>{const k=sel.map(c=>String(r[c]??'')).join('|');if(!m.has(k))m.set(k,[]);m.get(k).push(i);});
+    const d=[];m.forEach((idx,k)=>{if(idx.length>1)d.push({k,idx,n:idx.length});});d.sort((a,b)=>b.n-a.n);setRes(d);};
+  
+  return <><div className="modal-overlay" onClick={onClose}/><div className="modal" style={{width:500,maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
+    <div className="p-4 border-b flex justify-between"><span className="font-semibold">Find Duplicates</span><button onClick={onClose}><Icons.X/></button></div>
+    {!res?<><div className="p-2 border-b flex gap-2"><button onClick={()=>setSel([...columns])} className="text-sm text-blue-600">All</button><button onClick={()=>setSel([])} className="text-sm text-red-600">Clear</button><span className="ml-auto text-sm">{sel.length} cols</span></div>
+      <div className="flex-1 overflow-auto">{columns.map(c=><div key={c} onClick={()=>setSel(p=>p.includes(c)?p.filter(x=>x!==c):[...p,c])} className={`flex items-center gap-2 px-3 py-2 border-b cursor-pointer ${sel.includes(c)?'bg-blue-50':''}`}><input type="checkbox" checked={sel.includes(c)} readOnly/><span>{c}</span></div>)}</div>
+      <div className="p-3 border-t flex justify-end gap-2"><button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button><button onClick={find} disabled={!sel.length} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">Find</button></div>
+    </>:<><div className="flex-1 overflow-auto p-4">
+      {res.length===0?<div className="text-center py-8 text-green-600">✓ No duplicates</div>:<>
+        <div className="bg-amber-50 p-3 rounded mb-4 flex justify-between"><span><b>{res.length}</b> groups</span><button onClick={()=>{onShow(res.flatMap(r=>r.idx));onClose();}} className="text-sm bg-amber-600 text-white px-3 py-1 rounded">Show All</button></div>
+        {res.slice(0,50).map((r,i)=><div key={i} className="border-b py-2 flex justify-between"><span className="text-sm truncate flex-1">{r.k}</span><span className="bg-amber-100 px-2 rounded mx-2">{r.n}</span><button onClick={()=>{onShow(r.idx);onClose();}} className="text-sm text-blue-600">Show</button></div>)}</>}
+    </div><div className="p-3 border-t flex justify-between"><button onClick={()=>setRes(null)} className="text-blue-600">← Back</button><button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Close</button></div></>}
+  </div></>;
+};
+
+// QC Modal  
+const QCModal=({columns,data,onClose,onShow,rules,setRules})=>{
+  const [tab,setTab]=useState('rules');
+  const [en,setEn]=useState(rules.map(r=>r.id));
+  const [res,setRes]=useState(null);
+  const [edit,setEdit]=useState(null);
+  
+  useEffect(()=>{if(columns.length)setRules(p=>p.map(r=>{if(!r.fieldHints||r.conditions[0].field)return r;const m=columns.find(c=>r.fieldHints.some(h=>c.toLowerCase().includes(h)));return m?{...r,conditions:[{...r.conditions[0],field:m}]}:r;}));},[columns]);
+  
+  const run=()=>{const f=[];rules.filter(r=>en.includes(r.id)&&r.conditions[0].field).forEach(r=>{const rows=[];data.forEach((row,i)=>{if(r.conditions.every(c=>evalCond(row,c)))rows.push(i);});if(rows.length)f.push({r,rows,n:rows.length});});f.sort((a,b)=>b.n-a.n);setRes(f);setTab('results');};
+  const save=rule=>{const i=rules.findIndex(r=>r.id===rule.id);if(i>=0)setRules(p=>p.map((r,j)=>j===i?rule:r));else setRules(p=>[...p,rule]);if(!en.includes(rule.id))setEn(p=>[...p,rule.id]);setEdit(null);};
+  const del=id=>{setRules(p=>p.filter(r=>r.id!==id));setEn(p=>p.filter(x=>x!==id));};
+  
+  return <><div className="modal-overlay" onClick={onClose}/><div className="modal" style={{width:700,maxHeight:'85vh',display:'flex',flexDirection:'column'}}>
+    <div className="p-4 border-b flex justify-between"><span className="font-semibold flex items-center gap-2"><Icons.AlertTriangle/>QC Rules</span><button onClick={onClose}><Icons.X/></button></div>
+    <div className="flex border-b">
+      <button onClick={()=>setTab('rules')} className={`flex-1 py-2 text-sm ${tab==='rules'?'border-b-2 border-blue-600 text-blue-600':'text-gray-500'}`}>Rules ({rules.length})</button>
+      <button onClick={()=>setTab('results')} className={`flex-1 py-2 text-sm ${tab==='results'?'border-b-2 border-blue-600 text-blue-600':'text-gray-500'}`}>Results</button>
+    </div>
+    <div className="flex-1 overflow-auto p-4">
+      {tab==='rules'&&!edit&&<>
+        <div className="flex gap-2 mb-4">
+          <button onClick={()=>setEdit({id:'c'+Date.now(),name:'',cat:'Custom',conditions:[{field:'',op:'is_empty',value:''}]})} className="px-3 py-2 bg-blue-600 text-white rounded text-sm"><Icons.Plus/> New</button>
+          <button onClick={()=>setRules(DEFAULT_RULES.map(r=>({...r})))} className="px-3 py-2 bg-gray-100 rounded text-sm"><Icons.RotateCcw/> Reset</button>
+        </div>
+        {rules.map(r=><div key={r.id} className={`flex items-center gap-2 px-3 py-2 border rounded mb-1 ${en.includes(r.id)?'bg-white':'bg-gray-50 opacity-60'}`}>
+          <input type="checkbox" checked={en.includes(r.id)} onChange={()=>setEn(p=>p.includes(r.id)?p.filter(x=>x!==r.id):[...p,r.id])}/>
+          <div className="flex-1"><div>{r.name}</div><div className="text-xs text-gray-500">{r.cat} {!r.conditions[0].field&&<span className="text-amber-600">• Not mapped</span>}</div></div>
+          {r.builtin&&<span className="text-xs bg-blue-100 text-blue-600 px-2 rounded">Built-in</span>}
+          <button onClick={()=>setEdit(r)} className="p-1 text-gray-400 hover:text-blue-600"><Icons.Edit/></button>
+          <button onClick={()=>del(r.id)} className="p-1 text-gray-400 hover:text-red-600"><Icons.Trash/></button>
+        </div>)}
+      </>}
+      {tab==='rules'&&edit&&<div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div><label className="text-sm font-medium">Name</label><input className="w-full px-3 py-2 border rounded mt-1" value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})}/></div>
+          <div><label className="text-sm font-medium">Category</label><select className="w-full px-3 py-2 border rounded mt-1" value={edit.cat} onChange={e=>setEdit({...edit,cat:e.target.value})}><option>Missing Data</option><option>Date Validation</option><option>Data Quality</option><option>Logic Check</option><option>Custom</option></select></div>
+        </div>
+        <div><label className="text-sm font-medium">Condition</label>
+          <div className="grid grid-cols-3 gap-2 mt-1">
+            <select className="px-3 py-2 border rounded" value={edit.conditions[0].field} onChange={e=>setEdit({...edit,conditions:[{...edit.conditions[0],field:e.target.value}]})}><option value="">-- Field --</option>{columns.map(c=><option key={c}>{c}</option>)}</select>
+            <select className="px-3 py-2 border rounded" value={edit.conditions[0].op} onChange={e=>setEdit({...edit,conditions:[{...edit.conditions[0],op:e.target.value}]})}>{OPERATORS.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select>
+            {OPERATORS.find(o=>o.id===edit.conditions[0].op)?.type!=='none'&&<input className="px-3 py-2 border rounded" placeholder="Value" value={edit.conditions[0].value||''} onChange={e=>setEdit({...edit,conditions:[{...edit.conditions[0],value:e.target.value}]})}/>}
+          </div>
+        </div>
+        <div className="flex gap-2"><button onClick={()=>setEdit(null)} className="px-4 py-2 border rounded">Cancel</button><button onClick={()=>save(edit)} disabled={!edit.name||!edit.conditions[0].field} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">Save</button></div>
+      </div>}
+      {tab==='results'&&<>{!res?<div className="text-center py-8"><button onClick={run} className="px-6 py-2 bg-blue-600 text-white rounded">Run QC ({en.length} rules)</button></div>:
+        res.length===0?<div className="text-center py-8 text-green-600 text-xl">✓ No issues found</div>:<>
+          <div className="bg-amber-50 p-3 rounded mb-4 flex justify-between"><span><b>{res.reduce((s,r)=>s+r.n,0)}</b> issues in <b>{res.length}</b> rules</span><button onClick={()=>{onShow(res.flatMap(r=>r.rows));onClose();}} className="text-sm bg-amber-600 text-white px-3 py-1 rounded">Show All</button></div>
+          {res.map((r,i)=><div key={i} className="border rounded p-3 mb-2 flex justify-between"><div><div className="font-medium">{r.r.name}</div><div className="text-xs text-gray-500">{r.r.cat}</div></div><div className="flex items-center gap-2"><span className="bg-amber-100 px-2 py-1 rounded">{r.n}</span><button onClick={()=>{onShow(r.rows);onClose();}} className="text-sm text-blue-600">Show</button></div></div>)}
+        </>}</>}
+    </div>
+    <div className="p-3 border-t flex justify-end gap-2">{tab==='results'&&res&&<button onClick={()=>setRes(null)} className="px-4 py-2 border rounded">Clear</button>}<button onClick={run} className="px-4 py-2 bg-blue-600 text-white rounded">Run</button><button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Close</button></div>
+  </div></>;
+};
+
+// Compare Modal
+const CompareModal=({columns,data,onClose,onShow})=>{
+  const [cmp,setCmp]=useState(null);
+  const [key,setKey]=useState('');
+  const [res,setRes]=useState(null);
+  const [view,setView]=useState('summary');
+  
+  const upload=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});const js=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});setCmp(js);
+    const k=columns.find(c=>['case','caseid','id'].some(h=>c.toLowerCase().includes(h)));if(k)setKey(k);};r.readAsArrayBuffer(f);};
+  
+  const run=()=>{
+    const curr=new Map(),prev=new Map();
+    data.forEach((r,i)=>{const k=String(r[key]||'');if(k)curr.set(k,{r,i});});
+    cmp.forEach((r,i)=>{const k=String(r[key]||'');if(k)prev.set(k,{r,i});});
+    const added=[],removed=[],modified=[],unchanged=[];
+    curr.forEach((c,k)=>{
+      if(!prev.has(k))added.push({k,i:c.i});
+      else{const p=prev.get(k);const ch=columns.filter(col=>String(c.r[col]??'')!==String(p.r[col]??''));if(ch.length)modified.push({k,i:c.i,ch});else unchanged.push({k,i:c.i});}
+    });
+    prev.forEach((p,k)=>{if(!curr.has(k))removed.push({k});});
+    setRes({added,removed,modified,unchanged});
+  };
+  
+  return <><div className="modal-overlay" onClick={onClose}/><div className="modal" style={{width:700,maxHeight:'85vh',display:'flex',flexDirection:'column'}}>
+    <div className="p-4 border-b flex justify-between"><span className="font-semibold flex items-center gap-2"><Icons.GitCompare/>Compare Versions</span><button onClick={onClose}><Icons.X/></button></div>
+    {!res?<div className="p-4 overflow-auto">
+      <div className="mb-4"><div className="text-sm font-medium mb-2">Current: {data.length} rows</div></div>
+      <div className="mb-4"><div className="text-sm font-medium mb-2">Previous Version</div>
+        {!cmp?<label className="flex items-center justify-center p-6 border-2 border-dashed rounded cursor-pointer hover:bg-gray-50"><Icons.Upload/><span className="ml-2">Upload file</span><input type="file" accept=".xlsx,.xls,.csv" onChange={upload} className="hidden"/></label>:
+        <div className="bg-green-50 border border-green-200 p-3 rounded flex justify-between"><span>{cmp.length} rows loaded</span><button onClick={()=>setCmp(null)} className="text-red-500"><Icons.X/></button></div>}
+      </div>
+      {cmp&&<div className="mb-4"><div className="text-sm font-medium mb-2">Key Column</div><select className="w-full px-3 py-2 border rounded" value={key} onChange={e=>setKey(e.target.value)}><option value="">-- Select --</option>{columns.map(c=><option key={c}>{c}</option>)}</select></div>}
+    </div>:<div className="flex-1 overflow-auto">
+      <div className="flex border-b">
+        {['summary','added','removed','modified'].map(t=><button key={t} onClick={()=>setView(t)} className={`flex-1 py-2 text-sm capitalize ${view===t?'border-b-2 border-blue-600 text-blue-600':'text-gray-500'}`}>{t} {t!=='summary'&&`(${res[t].length})`}</button>)}
+      </div>
+      <div className="p-4">
+        {view==='summary'&&<div className="grid grid-cols-4 gap-3">
+          <div className="bg-green-50 p-4 rounded text-center cursor-pointer" onClick={()=>setView('added')}><div className="text-2xl font-bold text-green-700">{res.added.length}</div><div className="text-xs">Added</div></div>
+          <div className="bg-red-50 p-4 rounded text-center cursor-pointer" onClick={()=>setView('removed')}><div className="text-2xl font-bold text-red-700">{res.removed.length}</div><div className="text-xs">Removed</div></div>
+          <div className="bg-amber-50 p-4 rounded text-center cursor-pointer" onClick={()=>setView('modified')}><div className="text-2xl font-bold text-amber-700">{res.modified.length}</div><div className="text-xs">Modified</div></div>
+          <div className="bg-gray-50 p-4 rounded text-center"><div className="text-2xl font-bold text-gray-700">{res.unchanged.length}</div><div className="text-xs">Unchanged</div></div>
+        </div>}
+        {view==='added'&&<div>{res.added.length===0?<div className="text-center py-8 text-gray-500">None</div>:<><div className="flex justify-between mb-3"><span>{res.added.length} added</span><button onClick={()=>{onShow(res.added.map(a=>a.i));onClose();}} className="text-sm bg-green-600 text-white px-3 py-1 rounded">Show</button></div>{res.added.slice(0,50).map((a,i)=><div key={i} className="border-b py-1">{a.k}</div>)}</>}</div>}
+        {view==='removed'&&<div>{res.removed.length===0?<div className="text-center py-8 text-gray-500">None</div>:res.removed.slice(0,50).map((r,i)=><div key={i} className="border-b py-1">{r.k}</div>)}</div>}
+        {view==='modified'&&<div>{res.modified.length===0?<div className="text-center py-8 text-gray-500">None</div>:<><div className="flex justify-between mb-3"><span>{res.modified.length} modified</span><button onClick={()=>{onShow(res.modified.map(m=>m.i));onClose();}} className="text-sm bg-amber-600 text-white px-3 py-1 rounded">Show</button></div>{res.modified.slice(0,30).map((m,i)=><div key={i} className="border rounded p-2 mb-2 bg-amber-50"><div className="font-medium">{m.k}</div><div className="text-xs text-gray-500">{m.ch.length} fields changed</div></div>)}</>}</div>}
+      </div>
+    </div>}
+    <div className="p-3 border-t flex justify-between">{res?<button onClick={()=>setRes(null)} className="text-blue-600">← Back</button>:<span/>}<div className="flex gap-2">{!res&&cmp&&key&&<button onClick={run} className="px-4 py-2 bg-blue-600 text-white rounded">Compare</button>}<button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Close</button></div></div>
+  </div></>;
+};
+
+// Main App
+function App(){
+  const [data,setData]=useState([]);
+  const [columns,setColumns]=useState([]);
+  const [fileName,setFileName]=useState('');
+  const [filters,setFilters]=useState({});
+  const [search,setSearch]=useState('');
+  const [config,setConfig]=useState({});
+  const [frozen,setFrozen]=useState([]);
+  const [views,setViews]=useState([]);
+  const [sort,setSort]=useState({col:null,dir:'asc'});
+  const [page,setPage]=useState(1);
+  const [filterCol,setFilterCol]=useState(null);
+  const [statsCol,setStatsCol]=useState(null);
+  const [showDup,setShowDup]=useState(false);
+  const [showQC,setShowQC]=useState(false);
+  const [showCmp,setShowCmp]=useState(false);
+  const [rules,setRules]=useState(()=>DEFAULT_RULES.map(r=>({...r})));
+  const [highlight,setHighlight]=useState([]);
+  const [showOnly,setShowOnly]=useState(null);
+  const perPage=100;
+
+  const upload=useCallback(e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+      const js=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+      const cols=js.length?Object.keys(js[0]):[];
+      setData(js);setColumns(cols);setFileName(f.name);
+      const c={};cols.forEach((col,i)=>c[col]={visible:true,order:i});
+      setConfig(c);setFilters({});setHighlight([]);setShowOnly(null);setPage(1);setFrozen([]);
+    };
+    r.readAsArrayBuffer(f);
+  },[]);
+
+  const handleShow=idxs=>{setShowOnly(idxs);setHighlight(idxs);};
+  const applyView=v=>{setConfig(v.config);setFrozen(v.frozen||[]);};
+  
+  const filtered=useMemo(()=>{
+    let res=showOnly?data.filter((_,i)=>showOnly.includes(i)):data;
+    if(!showOnly){
+      Object.entries(filters).forEach(([col,filter])=>{
+        if(!filter)return;
+        
+        // Handle new filter format (date range or values)
+        if(filter.type==='date'){
+          // Date range filter
+          const {dateRange,includeBlank}=filter;
+          res=res.filter(r=>{
+            const v=r[col];
+            const isEmpty=!v||!String(v).trim();
+            
+            if(isEmpty)return includeBlank;
+            
+            const d=v instanceof Date?v:new Date(v);
+            if(isNaN(d))return false;
+            
+            const dateStr=d.toISOString().split('T')[0];
+            if(dateRange.from&&dateStr<dateRange.from)return false;
+            if(dateRange.to&&dateStr>dateRange.to)return false;
+            return true;
+          });
+        }else if(filter.type==='values'){
+          // Value selection filter
+          const vals=filter.values;
+          if(vals?.length){
+            res=res.filter(r=>{
+              const v=r[col];
+              const blank=!v||!String(v).trim();
+              return(vals.includes(BLANK)&&blank)||(!blank&&vals.includes(String(v)));
+            });
+          }
+        }else if(Array.isArray(filter)){
+          // Legacy format (array of values) - backward compatibility
+          const vals=filter;
+          if(vals?.length){
+            res=res.filter(r=>{
+              const v=r[col];
+              const blank=!v||!String(v).trim();
+              return(vals.includes(BLANK)&&blank)||(!blank&&vals.includes(String(v)));
+            });
+          }
+        }
+      });
+      if(search){const t=search.toLowerCase();res=res.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(t)));}
+    }
+    if(sort.col)res=_.orderBy(res,[sort.col],[sort.dir]);
+    return res;
+  },[data,filters,search,sort,showOnly]);
+
+  const visible=useMemo(()=>columns.filter(c=>config[c]?.visible!==false).sort((a,b)=>(config[a]?.order??0)-(config[b]?.order??0)),[columns,config]);
+  const pages=Math.ceil(filtered.length/perPage);
+  const pageData=filtered.slice((page-1)*perPage,page*perPage);
+
+  useEffect(()=>{setPage(1);},[filters,search,showOnly]);
+
+  const exportData=()=>{const ws=XLSX.utils.json_to_sheet(filtered);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Data');XLSX.writeFile(wb,'filtered_'+fileName);};
+  
+  const getFrozenStyle=col=>{const i=frozen.indexOf(col);if(i===-1)return{};let left=50;for(let j=0;j<i;j++)left+=150;return{position:'sticky',left,zIndex:5,background:'#eff6ff'};};
+
+  if(!data.length)return(
+    <div className="min-h-screen flex items-center justify-center p-8">
+      <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg w-full text-center">
+        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.BarChart/></div>
+        <h1 className="text-2xl font-bold mb-2">Line Listing Analyzer</h1>
+        <p className="text-gray-600 mb-2">Analyze line listings in your browser</p>
+        <div className="bg-green-50 border border-green-200 rounded p-3 mb-6 text-sm text-green-700"><Icons.Shield/> All processing is local. No data uploaded.</div>
+        <label className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700">
+          <Icons.Upload/>Select Excel/CSV File<input type="file" accept=".xlsx,.xls,.csv" onChange={upload} className="hidden"/>
+        </label>
+      </div>
+    </div>
+  );
+
+  return(
+    <div className="min-h-screen bg-gray-50">
+      {filterCol&&<FilterModal col={filterCol} data={data} filters={filters} setFilters={setFilters} onClose={()=>setFilterCol(null)}/>}
+      {statsCol&&<StatsModal col={statsCol} data={data} onClose={()=>setStatsCol(null)}/>}
+      {showDup&&<DupModal columns={columns} data={data} onClose={()=>setShowDup(false)} onShow={handleShow}/>}
+      {showQC&&<QCModal columns={columns} data={data} onClose={()=>setShowQC(false)} onShow={handleShow} rules={rules} setRules={setRules}/>}
+      {showCmp&&<CompareModal columns={columns} data={data} onClose={()=>setShowCmp(false)} onShow={handleShow}/>}
+      
+      <header className="bg-white border-b px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+        <div><h1 className="text-lg font-semibold">Line Listing Analyzer</h1><p className="text-sm text-gray-500">{fileName} • {filtered.length.toLocaleString()} of {data.length.toLocaleString()} rows</p></div>
+        <div className="flex gap-2">
+          <button onClick={exportData} className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200"><Icons.Download/>Export</button>
+          <label className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded text-sm cursor-pointer hover:bg-gray-200"><Icons.Upload/>New<input type="file" accept=".xlsx,.xls,.csv" onChange={upload} className="hidden"/></label>
+        </div>
+      </header>
+
+      <div className="bg-white border-b px-4 py-2 flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 max-w-md"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Icons.Search/></span><input type="text" placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm"/></div>
+        <ColManager columns={columns} config={config} setConfig={setConfig} frozen={frozen} setFrozen={setFrozen}/>
+        <ViewsManager views={views} setViews={setViews} config={config} frozen={frozen} applyView={applyView}/>
+        <button onClick={()=>setShowDup(true)} className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded text-sm hover:bg-gray-200"><Icons.Copy/>Duplicates</button>
+        <button onClick={()=>setShowCmp(true)} className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded text-sm hover:bg-gray-200"><Icons.GitCompare/>Compare</button>
+        <button onClick={()=>setShowQC(true)} className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200"><Icons.AlertTriangle/>QC Rules</button>
+        {Object.keys(filters).length>0&&<button onClick={()=>setFilters({})} className="flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded text-sm"><Icons.X/>Clear filters</button>}
+        {showOnly&&<button onClick={()=>{setShowOnly(null);setHighlight([]);}} className="flex items-center gap-1 px-3 py-2 bg-amber-100 text-amber-700 rounded text-sm"><Icons.X/>Clear view ({showOnly.length})</button>}
+      </div>
+
+      <div className="overflow-auto" style={{maxHeight:'calc(100vh - 180px)'}}>
+        <table className="w-full text-sm border-collapse">
+          <thead className="bg-gray-100 sticky top-0 z-20">
+            <tr>
+              <th className="p-2 border-b border-r bg-gray-100" style={{position:'sticky',left:0,zIndex:25,minWidth:50}}>#</th>
+              {visible.map(col=>{const fr=frozen.includes(col);const st={...getFrozenStyle(col),minWidth:150};if(fr)st.background='#e5e7eb';
+                const hasFilter=filters[col]&&(filters[col].type==='date'?(filters[col].dateRange?.from||filters[col].dateRange?.to||filters[col].includeBlank):filters[col].type==='values'?filters[col].values?.length:Array.isArray(filters[col])&&filters[col].length);
+                return<th key={col} className="p-2 border-b border-r text-left bg-gray-100" style={st}>
+                  <div className="flex items-center gap-1">{fr&&<Icons.Lock/>}
+                    <span className="truncate cursor-pointer hover:text-blue-600" onClick={()=>setSort(p=>({col,dir:p.col===col&&p.dir==='asc'?'desc':'asc'}))}>{col}</span>
+                    {sort.col===col&&(sort.dir==='asc'?<Icons.ChevronUp/>:<Icons.ChevronDown/>)}
+                    <button onClick={()=>setStatsCol(col)} className="p-1 text-gray-400 hover:text-purple-600"><Icons.BarChart/></button>
+                    <button onClick={()=>setFilterCol(col)} className={`p-1 ${hasFilter?'text-blue-600':'text-gray-400'}`}><Icons.Filter/></button>
+                  </div>
+                </th>;})}
+            </tr>
+          </thead>
+          <tbody>
+            {pageData.map((row,i)=>{const idx=(page-1)*perPage+i;const oi=data.indexOf(row);const hl=highlight.includes(oi);
+              return<tr key={i} className={`border-b hover:bg-gray-50 ${hl?'bg-amber-50':''}`}>
+                <td className="p-2 border-r text-gray-400" style={{position:'sticky',left:0,zIndex:4,background:hl?'#fef3c7':'#fff',minWidth:50}}>{idx+1}</td>
+                {visible.map(col=>{const fr=frozen.includes(col);const st={...getFrozenStyle(col),minWidth:150};if(hl)st.background='#fef3c7';else if(fr)st.background='#eff6ff';
+                  return<td key={col} className="p-2 border-r truncate max-w-[250px]" style={st} title={String(row[col]||'')}>{row[col] instanceof Date?row[col].toLocaleDateString():String(row[col]??'')}</td>;})}
+              </tr>;})}
+            {pageData.length===0&&<tr><td colSpan={visible.length+1} className="p-8 text-center text-gray-500">No data</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {pages>1&&<footer className="bg-white border-t px-4 py-3 flex items-center justify-between">
+        <span className="text-sm text-gray-600">Page {page} of {pages}</span>
+        <div className="flex gap-2">
+          <button onClick={()=>setPage(1)} disabled={page===1} className="px-3 py-1 border rounded disabled:opacity-50">First</button>
+          <button onClick={()=>setPage(p=>p-1)} disabled={page===1} className="px-3 py-1 border rounded disabled:opacity-50">Prev</button>
+          <button onClick={()=>setPage(p=>p+1)} disabled={page===pages} className="px-3 py-1 border rounded disabled:opacity-50">Next</button>
+          <button onClick={()=>setPage(pages)} disabled={page===pages} className="px-3 py-1 border rounded disabled:opacity-50">Last</button>
+        </div>
+      </footer>}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>,document.getElementById('root'));
+</script>
+</body>
+</html>
