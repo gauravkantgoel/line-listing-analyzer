@@ -60,7 +60,7 @@ Blank Handling: Option to include/exclude empty dates
 
 Option 1: Use Online (Recommended)
 
-Visit: https://yourusername.github.io/pv-line-listing-analyzer
+Visit: https://gauravkantgoel.github.io/line-listing-analyzer/
 
 Option 2: Run Locally
 
