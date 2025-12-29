@@ -738,14 +738,19 @@ const SummaryModal=({columns,data,onClose})=>{
             
             {stats.timeline&&stats.timeline.length>1&&<div className="border rounded-lg p-4">
               <h3 className="font-semibold mb-3">Cases Over Time</h3>
-              <div className="flex items-end gap-1 h-24">
+              <div className="flex items-end gap-1 h-32">
                 {stats.timeline.map(([month,count],i)=>{
                   const max=Math.max(...stats.timeline.map(t=>t[1]));
-                  return <div key={i} className="flex-1 flex flex-col items-center">
-                    <div className="w-full bg-blue-500 rounded-t" style={{height:`${count/max*100}%`}} title={`${month}: ${count}`}/>
-                    <div className="text-xs text-gray-400 mt-1 rotate-45 origin-left">{month.slice(5)}</div>
+                  const heightPct=max>0?(count/max*100):0;
+                  return <div key={i} className="flex-1 flex flex-col items-center justify-end">
+                    <div className="text-xs text-gray-600 mb-1">{count}</div>
+                    <div className="w-full bg-blue-500 rounded-t transition-all" style={{height:`${Math.max(heightPct,2)}%`,minHeight:count>0?'4px':'0'}}/>
+                    <div className="text-xs text-gray-400 mt-1 w-full text-center truncate" title={month}>{month.slice(5)}</div>
                   </div>;
                 })}
+              </div>
+              <div className="text-xs text-gray-400 mt-2 text-center">
+                Total: {stats.timeline.reduce((sum,t)=>sum+t[1],0)} cases from {stats.timeline[0]?.[0]} to {stats.timeline[stats.timeline.length-1]?.[0]}
               </div>
             </div>}
           </div>
@@ -1215,6 +1220,8 @@ function App(){
   const [columns,setColumns]=useState([]);
   const [fileName,setFileName]=useState('');
   const [filters,setFilters]=useState({});
+  const [loading,setLoading]=useState(false);
+  const [loadProgress,setLoadProgress]=useState(0);
   const [search,setSearch]=useState('');
   const [config,setConfig]=useState({});
   const [frozen,setFrozen]=useState([]);
@@ -1232,19 +1239,38 @@ function App(){
   const [showSummary,setShowSummary]=useState(false);
   const perPage=100;
 
-  const upload=useCallback(e=>{
-    const f=e.target.files[0];if(!f)return;
-    const r=new FileReader();
-    r.onload=ev=>{
+const upload=useCallback(e=>{
+  const f=e.target.files[0];if(!f)return;
+  setLoading(true);
+  setLoadProgress(0);
+  const r=new FileReader();
+  r.onprogress=(event)=>{
+    if(event.lengthComputable){
+      const pct=Math.round((event.loaded/event.total)*50);
+      setLoadProgress(pct);
+    }
+  };
+  r.onload=ev=>{
+    setLoadProgress(60);
+    setTimeout(()=>{
       const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
-      const js=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
-      const cols=js.length?Object.keys(js[0]):[];
-      setData(js);setColumns(cols);setFileName(f.name);
-      const c={};cols.forEach((col,i)=>c[col]={visible:true,order:i});
-      setConfig(c);setFilters({});setHighlight([]);setShowOnly(null);setPage(1);setFrozen([]);
-    };
-    r.readAsArrayBuffer(f);
-  },[]);
+      setLoadProgress(80);
+      setTimeout(()=>{
+        const js=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+        const cols=js.length?Object.keys(js[0]):[];
+        setLoadProgress(95);
+        setTimeout(()=>{
+          setData(js);setColumns(cols);setFileName(f.name);
+          const c={};cols.forEach((col,i)=>c[col]={visible:true,order:i});
+          setConfig(c);setFilters({});setHighlight([]);setShowOnly(null);setPage(1);setFrozen([]);
+          setLoadProgress(100);
+          setTimeout(()=>{setLoading(false);setLoadProgress(0);},300);
+        },0);
+      },0);
+    },0);
+  };
+  r.readAsArrayBuffer(f);
+},[]);
 
   const handleShow=idxs=>{setShowOnly(idxs);setHighlight(idxs);};
   const applyView=v=>{setConfig(v.config);setFrozen(v.frozen||[]);};
@@ -1277,17 +1303,26 @@ function App(){
   const exportData=()=>{const ws=XLSX.utils.json_to_sheet(filtered);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Data');XLSX.writeFile(wb,'filtered_'+fileName);};
   const getFrozenStyle=col=>{const i=frozen.indexOf(col);if(i===-1)return{};let left=50;for(let j=0;j<i;j++)left+=150;return{position:'sticky',left,zIndex:5,background:'#eff6ff'};};
 
-  if(!data.length)return(
-    <div className="min-h-screen flex items-center justify-center p-8">
-      <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg w-full text-center">
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.BarChart/></div>
-        <h1 className="text-2xl font-bold mb-2">PV Line Listing Analyzer</h1>
-        <p className="text-gray-600 mb-2">Analyze pharmacovigilance line listings in your browser</p>
-        <div className="bg-green-50 border border-green-200 rounded p-3 mb-6 text-sm text-green-700"><Icons.Shield/> All processing is local. No data uploaded.</div>
-        <label className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700"><Icons.Upload/>Select Excel/CSV File<input type="file" accept=".xlsx,.xls,.csv" onChange={upload} className="hidden"/></label>
-      </div>
+ if(!data.length)return(
+  <div className="min-h-screen flex items-center justify-center p-8">
+    <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg w-full text-center">
+      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.BarChart/></div>
+      <h1 className="text-2xl font-bold mb-2">PV Line Listing Analyzer</h1>
+      <p className="text-gray-600 mb-2">Analyze pharmacovigilance line listings in your browser</p>
+      <div className="bg-green-50 border border-green-200 rounded p-3 mb-6 text-sm text-green-700"><Icons.Shield/> All processing is local. No data uploaded.</div>
+      {loading?<div className="w-full">
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span className="text-blue-600 font-medium">Loading file...</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+          <div className="bg-blue-600 h-full rounded-full transition-all duration-300 ease-out" style={{width:`${loadProgress}%`}}></div>
+        </div>
+        <div className="text-sm text-gray-500 mt-2">{loadProgress}% complete</div>
+      </div>:<label className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700"><Icons.Upload/>Select Excel/CSV File<input type="file" accept=".xlsx,.xls,.csv" onChange={upload} className="hidden"/></label>}
     </div>
-  );
+  </div>
+);
 
   return(
     <div className="min-h-screen bg-gray-50">
