@@ -1,0 +1,41 @@
+Case Number,Receipt Date,Onset Date,Product,Event PT,Seriousness,Seriousness Criteria,Outcome,Reporter Country,Patient Age,Patient Sex,Causality,Narrative
+CASE-2024-001,1/15/2024,1/10/2024,DRUGEX 100MG,Headache,No,,Recovered,United States,45,Female,Possible,Patient reported mild headache after first dose. Resolved without treatment.
+CASE-2024-002,1/18/2024,1/12/2024,DRUGEX 100MG,Nausea,No,,Recovered,Germany,62,Male,Probable,Nausea occurred 2 hours after administration. Resolved within 24 hours.
+CASE-2024-003,1/20/2024,1/15/2024,DRUGEX 50MG,Rash,Yes,Medically Significant,Recovering,France,38,Female,Possible,Mild skin rash on arms. Under observation.
+CASE-2024-004,1/22/2024,1/18/2024,DRUGEX 100MG,Dizziness,No,,Recovered,United Kingdom,55,Male,Unlikely,Brief episode of dizziness. No further occurrences.
+CASE-2024-005,1/25/2024,1/20/2024,DRUGEX 50MG,Fatigue,No,,Not Recovered,Japan,41,Female,Possible,Ongoing fatigue reported. Patient continuing treatment.
+CASE-2024-006,1/28/2024,,DRUGEX 100MG,Insomnia,No,,Unknown,Canada,33,Male,Possible,Difficulty sleeping reported. Onset date not provided.
+CASE-2024-007,2/1/2024,1/28/2024,DRUGEX 100MG,Abdominal Pain,Yes,Hospitalization,Recovered,United States,58,Female,Probable,Severe abdominal pain requiring hospitalization. Recovered after 3 days.
+CASE-2024-008,2/5/2024,2/1/2024,DRUGEX 50MG,Vomiting,No,,Recovered,Spain,47,Male,Possible,Single episode of vomiting. No recurrence.
+CASE-2024-009,2/8/2024,2/5/2024,DRUGEX 100MG,Arthralgia,No,,Not Recovered,Italy,66,Female,Unlikely,Joint pain reported. Pre-existing arthritis noted.
+CASE-2024-010,2/10/2024,2/8/2024,DRUGEX 50MG,Pruritus,No,,Recovered,Australia,29,Male,Possible,Mild itching resolved after dose reduction.
+CASE-2024-011,2/12/2024,2/10/2024,DRUGEX 100MG,Dyspnea,Yes,Life Threatening,Recovered,United States,72,Female,Probable,Shortness of breath requiring emergency care. Patient stabilized.
+CASE-2024-012,2/15/2024,2/12/2024,DRUGEX 50MG,Constipation,No,,Recovered,Germany,51,Male,Possible,Mild constipation resolved with dietary changes.
+CASE-2024-013,2/18/2024,2/15/2024,DRUGEX 100MG,Anxiety,No,,Not Recovered,France,44,Female,Unlikely,Anxiety symptoms reported. Patient has history of anxiety disorder.
+CASE-2024-014,2/20/2024,2/18/2024,DRUGEX 50MG,Tremor,No,,Recovered,Brazil,60,Male,Possible,Mild hand tremor observed. Resolved after treatment completion.
+CASE-2024-015,2/22/2024,2/20/2024,DRUGEX 100MG,Pyrexia,Yes,Medically Significant,Recovered,India,35,Female,Probable,Fever of 39C. Resolved with symptomatic treatment.
+CASE-2024-016,2/25/2024,2/22/2024,DRUGEX 50MG,Somnolence,No,,Recovered,United States,48,Male,Possible,Drowsiness in first week of treatment. Adapted over time.
+CASE-2024-017,2/28/2024,2/25/2024,DRUGEX 100MG,Dry Mouth,No,,Not Recovered,Mexico,53,Female,Possible,Persistent dry mouth. Patient continuing treatment.
+CASE-2024-018,3/2/2024,2/28/2024,DRUGEX 50MG,Myalgia,No,,Recovered,South Korea,40,Male,Unlikely,Muscle pain attributed to exercise. Resolved spontaneously.
+CASE-2024-019,3/5/2024,3/1/2024,DRUGEX 100MG,Palpitations,Yes,Medically Significant,Recovered,United Kingdom,67,Female,Probable,Heart palpitations investigated. No cardiac abnormality found.
+CASE-2024-020,3/8/2024,3/5/2024,DRUGEX 50MG,Blurred Vision,No,,Recovered,Canada,56,Male,Possible,Temporary blurred vision. Resolved within 48 hours.
+CASE-2024-021,3/10/2024,,DRUGEX 100MG,,Yes,Hospitalization,Unknown,United States,61,Female,Not Assessed,Incomplete report received. Follow-up requested.
+CASE-2024-022,3/12/2024,3/10/2024,DRUGEX 50MG,Diarrhea,No,,Recovered,Germany,37,Male,Possible,Loose stools for 2 days. Self-limiting.
+CASE-2024-023,3/15/2024,3/12/2024,DRUGEX 100MG,Peripheral Edema,No,,Not Recovered,Japan,70,Female,Possible,Mild ankle swelling. Under monitoring.
+CASE-2024-024,3/18/2024,3/15/2024,DRUGEX 50MG,Back Pain,No,,Recovered,Australia,43,Male,Unlikely,Back pain likely unrelated. Patient has history of disc problems.
+CASE-2024-025,3/20/2024,3/18/2024,DRUGEX 100MG,Hypertension,Yes,Medically Significant,Recovered,France,65,Female,Probable,Blood pressure elevation requiring dose adjustment. Controlled.
+CASE-2024-026,3/22/2024,3/20/2025,DRUGEX 50MG,Tinnitus,No,,Not Recovered,Italy,49,Male,Possible,Ringing in ears reported. Onset date appears incorrect - future date.
+CASE-2024-027,3/25/2024,3/22/2024,DRUGEX 100MG,Weight Gain,No,,Not Recovered,Spain,54,Female,Possible,2kg weight gain over 3 months. Diet counseling provided.
+CASE-2024-028,3/28/2024,3/25/2024,DRUGEX 50MG,Alopecia,No,,Not Recovered,Brazil,31,Male,Unlikely,Hair thinning reported. Family history of baldness.
+CASE-2024-029,3/30/2024,3/28/2024,DRUGEX 100MG,Hypotension,Yes,Medically Significant,Recovered,United States,73,Female,Probable,Low blood pressure episode. Dose reduced.
+CASE-2024-030,4/2/2024,3/30/2024,DRUGEX 50MG,Epistaxis,No,,Recovered,India,46,Male,Possible,Single nosebleed episode. No recurrence.
+CASE-2024-031,4/5/2024,4/1/2024,DRUGEX 100MG,Chest Pain,Yes,Hospitalization,Recovered,United States,68,Male,Probable,Non-cardiac chest pain. Full cardiac workup negative.
+CASE-2024-032,4/8/2024,4/5/2024,DRUGEX 50MG,Cough,No,,Recovered,Germany,42,Female,Possible,Dry cough for one week. Resolved spontaneously.
+CASE-2024-033,4/10/2024,4/7/2024,DRUGEX 100MG,Depression,No,,Not Recovered,Canada,39,Male,Unlikely,Depressive symptoms. Pre-existing condition noted.
+CASE-2024-034,4/12/2024,4/10/2024,DRUGEX 50MG,Urticaria,Yes,Medically Significant,Recovered,France,27,Female,Probable,Hives appeared after second dose. Treated with antihistamines.
+CASE-2024-035,4/15/2024,4/12/2024,DRUGEX 100MG,Asthenia,No,,Recovered,United Kingdom,59,Male,Possible,General weakness reported. Improved with rest.
+CASE-2024-001,4/18/2024,4/15/2024,DRUGEX 50MG,Headache,No,,Recovered,Japan,45,Female,Possible,Duplicate case number - data quality issue for testing.
+CASE-2024-037,4/20/2024,4/17/2024,DRUGEX 100MG,Insomnia,No,,Not Recovered,Australia,52,Male,Possible,Sleep disturbance ongoing. Sleep hygiene advice given.
+CASE-2024-038,4/22/2024,4/19/2024,DRUGEX 50MG,Nasopharyngitis,No,,Recovered,Italy,34,Female,Unlikely,Common cold symptoms. Likely coincidental.
+CASE-2024-039,4/25/2024,4/22/2024,DRUGEX 100MG,Decreased Appetite,No,,Recovered,Spain,63,Male,Possible,Reduced appetite first two weeks. Normalized thereafter.
+CASE-2024-040,4/28/2024,4/25/2024,DRUGEX 50MG,Photosensitivity,No,,Recovered,Brazil,36,Female,Probable,Skin sensitivity to sunlight. Advised sun protection.
