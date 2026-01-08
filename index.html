@@ -48,9 +48,11 @@ const Icons={
   Save:()=><svg className="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>,
   Bookmark:()=><svg className="icon" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
   GripVertical:()=><svg className="icon" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>,
+  Layers:()=><svg className="icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
 };
 
 const BLANK='__BLANK__';
+const CONCAT_SEP=' | ';
 
 const OPERATORS=[
   {id:'is_empty',name:'Is Empty',type:'none'},
@@ -114,6 +116,90 @@ const evalRule=(row,rule)=>{
   const results=rule.conditions.map(c=>c.field?evalCond(row,c):false);
   return rule.logic==='OR'?results.some(r=>r):results.every(r=>r);
 };
+
+// Case Consolidation Modal
+const CaseConsolidateModal=({columns,data,onClose,onApply,currentConfig})=>{
+  const findCol=(hints)=>columns.find(c=>hints.some(h=>c.toLowerCase().includes(h.toLowerCase())));
+  const [caseCol,setCaseCol]=useState(currentConfig?.caseCol||findCol(['case','caseid','case number','case id','case_id'])||'');
+  const [concatCols,setConcatCols]=useState(currentConfig?.concatCols||[]);
+  
+  useEffect(()=>{
+    if(!currentConfig&&concatCols.length===0){
+      const hints=['product','drug','pt','preferred term','event','soc','hlt','hlgt','llt','indication','reaction','outcome','meddra'];
+      setConcatCols(columns.filter(c=>hints.some(h=>c.toLowerCase().includes(h))));
+    }
+  },[columns,currentConfig]);
+  
+  const toggleCol=col=>setConcatCols(p=>p.includes(col)?p.filter(c=>c!==col):[...p,col]);
+  
+  const preview=useMemo(()=>{
+    if(!caseCol)return null;
+    const groups=_.groupBy(data,r=>String(r[caseCol]||''));
+    const multiRowCases=Object.entries(groups).filter(([k,v])=>k&&v.length>1);
+    return {totalCases:Object.keys(groups).filter(k=>k).length,multiRowCases:multiRowCases.length,maxRows:Math.max(...Object.values(groups).map(v=>v.length),1),sample:multiRowCases.slice(0,3)};
+  },[data,caseCol]);
+  
+  return <><div className="modal-overlay" onClick={onClose}/><div className="modal" style={{width:600,maxHeight:'85vh',display:'flex',flexDirection:'column'}}>
+    <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-t-lg">
+      <span className="font-semibold flex items-center gap-2"><Icons.Layers/>One Row Per Case</span>
+      <button onClick={onClose} className="hover:bg-white/20 rounded p-1"><Icons.X/></button>
+    </div>
+    <div className="p-4 overflow-auto flex-1">
+      <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-sm">
+        <strong>How it works:</strong> Rows with the same Case ID are consolidated into one row. For selected columns, unique values are joined with " | ". Other columns show the first row's value.
+      </div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">Case ID Column <span className="text-red-500">*</span></label>
+        <select className="w-full px-3 py-2 border rounded" value={caseCol} onChange={e=>setCaseCol(e.target.value)}>
+          <option value="">-- Select --</option>
+          {columns.map(c=><option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+      {preview&&<div className="mb-4 p-3 bg-gray-50 rounded border">
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div><div className="text-xl font-bold text-blue-600">{preview.totalCases}</div><div className="text-xs text-gray-500">Unique Cases</div></div>
+          <div><div className="text-xl font-bold text-amber-600">{preview.multiRowCases}</div><div className="text-xs text-gray-500">Multi-Row Cases</div></div>
+          <div><div className="text-xl font-bold text-purple-600">{preview.maxRows}</div><div className="text-xs text-gray-500">Max Rows/Case</div></div>
+        </div>
+      </div>}
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <label className="text-sm font-medium">Columns to Concatenate</label>
+          <div className="flex gap-2 text-xs">
+            <button onClick={()=>setConcatCols(columns.filter(c=>c!==caseCol))} className="text-blue-600 hover:underline">All</button>
+            <button onClick={()=>setConcatCols([])} className="text-red-600 hover:underline">Clear</button>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 mb-2">Select columns that may have multiple values per case (Products, Events/PTs, etc.)</p>
+        <div className="border rounded max-h-40 overflow-auto">
+          {columns.filter(c=>c!==caseCol).map(col=>(
+            <div key={col} onClick={()=>toggleCol(col)} className={`flex items-center gap-2 px-3 py-1.5 border-b cursor-pointer text-sm hover:bg-gray-50 ${concatCols.includes(col)?'bg-purple-50':''}`}>
+              <input type="checkbox" checked={concatCols.includes(col)} readOnly className="pointer-events-none"/>
+              <span>{col}</span>
+            </div>
+          ))}
+        </div>
+        <div className="text-xs text-gray-500 mt-1">{concatCols.length} columns selected</div>
+      </div>
+      {preview?.sample?.length>0&&<div className="border rounded p-3">
+        <div className="text-sm font-medium mb-2">Preview (first 3 multi-row cases)</div>
+        {preview.sample.map(([caseId,rows],i)=>(
+          <div key={i} className="mb-2 text-xs bg-gray-50 p-2 rounded">
+            <div className="font-medium text-purple-700">Case: {caseId} ({rows.length} rows)</div>
+            {concatCols.slice(0,2).map(col=>{
+              const vals=_.uniq(rows.map(r=>String(r[col]||'')).filter(v=>v));
+              return vals.length>1?<div key={col} className="text-gray-600 truncate">{col}: {vals.join(CONCAT_SEP)}</div>:null;
+            })}
+          </div>
+        ))}
+      </div>}
+    </div>
+    <div className="p-3 border-t flex justify-end gap-2">
+      <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+      <button onClick={()=>{onApply({caseCol,concatCols});onClose();}} disabled={!caseCol} className="px-4 py-2 bg-purple-600 text-white rounded disabled:opacity-50">Apply</button>
+    </div>
+  </div></>;
+};	
 
 // Filter Modal
 const FilterModal=({col,data,filters,setFilters,onClose})=>{
@@ -1228,6 +1314,8 @@ function App(){
   const [views,setViews]=useState([]);
   const [sort,setSort]=useState({col:null,dir:'asc'});
   const [page,setPage]=useState(1);
+  const [showConsolidate,setShowConsolidate]=useState(false);
+  const [consolidateConfig,setConsolidateConfig]=useState(null);
   const [filterCol,setFilterCol]=useState(null);
   const [statsCol,setStatsCol]=useState(null);
   const [showDup,setShowDup]=useState(false);
@@ -1262,7 +1350,7 @@ const upload=useCallback(e=>{
         setTimeout(()=>{
           setData(js);setColumns(cols);setFileName(f.name);
           const c={};cols.forEach((col,i)=>c[col]={visible:true,order:i});
-          setConfig(c);setFilters({});setHighlight([]);setShowOnly(null);setPage(1);setFrozen([]);
+          setConfig(c);setFilters({});setHighlight([]);setShowOnly(null);setPage(1);setFrozen([]);setConsolidateConfig(null);
           setLoadProgress(100);
           setTimeout(()=>{setLoading(false);setLoadProgress(0);},300);
         },0);
@@ -1275,24 +1363,53 @@ const upload=useCallback(e=>{
   const handleShow=idxs=>{setShowOnly(idxs);setHighlight(idxs);};
   const applyView=v=>{setConfig(v.config);setFrozen(v.frozen||[]);};
   
-  const filtered=useMemo(()=>{
-    let res=showOnly?data.filter((_,i)=>showOnly.includes(i)):data;
-    if(!showOnly){
-      Object.entries(filters).forEach(([col,filter])=>{
-        if(!filter)return;
-        if(filter.type==='date'){
-          const {dateRange,includeBlank}=filter;
-          res=res.filter(r=>{const v=r[col];const isEmpty=!v||!String(v).trim();if(isEmpty)return includeBlank;const d=v instanceof Date?v:new Date(v);if(isNaN(d))return false;const dateStr=d.toISOString().split('T')[0];if(dateRange.from&&dateStr<dateRange.from)return false;if(dateRange.to&&dateStr>dateRange.to)return false;return true;});
-        }else if(filter.type==='values'){
-          const vals=filter.values;
-          if(vals?.length)res=res.filter(r=>{const v=r[col];const blank=!v||!String(v).trim();return(vals.includes(BLANK)&&blank)||(!blank&&vals.includes(String(v)));});
-        }
-      });
-      if(search){const t=search.toLowerCase();res=res.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(t)));}
-    }
-    if(sort.col)res=_.orderBy(res,[sort.col],[sort.dir]);
-    return res;
-  },[data,filters,search,sort,showOnly]);
+  // Consolidated data computation
+const consolidatedData=useMemo(()=>{
+  if(!consolidateConfig)return null;
+  const {caseCol,concatCols}=consolidateConfig;
+  const groups=_.groupBy(data,r=>String(r[caseCol]||'__NO_CASE__'));
+  
+  return Object.entries(groups).map(([caseId,rows])=>{
+    if(rows.length===1)return {...rows[0],_rowCount:1,_concatCols:[]};
+    
+    const consolidated={_rowCount:rows.length,_concatCols:[]};
+    columns.forEach(col=>{
+      if(concatCols.includes(col)){
+        const vals=_.uniq(rows.map(r=>{
+          const v=r[col];
+          if(v instanceof Date)return v.toLocaleDateString();
+          return String(v||'');
+        }).filter(v=>v.trim()));
+        consolidated[col]=vals.join(CONCAT_SEP);
+        if(vals.length>1)consolidated._concatCols.push(col);
+      }else{
+        consolidated[col]=rows[0][col];
+      }
+    });
+    return consolidated;
+  });
+},[data,columns,consolidateConfig]);
+
+const workingData=consolidatedData||data;
+  
+ const filtered=useMemo(()=>{
+  let res=showOnly&&!consolidateConfig?workingData.filter((_,i)=>showOnly.includes(i)):workingData;
+  if(!showOnly||consolidateConfig){
+    Object.entries(filters).forEach(([col,filter])=>{
+      if(!filter)return;
+      if(filter.type==='date'){
+        const {dateRange,includeBlank}=filter;
+        res=res.filter(r=>{const v=r[col];const isEmpty=!v||!String(v).trim();if(isEmpty)return includeBlank;const d=v instanceof Date?v:new Date(v);if(isNaN(d))return false;const dateStr=d.toISOString().split('T')[0];if(dateRange.from&&dateStr<dateRange.from)return false;if(dateRange.to&&dateStr>dateRange.to)return false;return true;});
+      }else if(filter.type==='values'){
+        const vals=filter.values;
+        if(vals?.length)res=res.filter(r=>{const v=r[col];const blank=!v||!String(v).trim();return(vals.includes(BLANK)&&blank)||(!blank&&vals.includes(String(v)));});
+      }
+    });
+    if(search){const t=search.toLowerCase();res=res.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(t)));}
+  }
+  if(sort.col)res=_.orderBy(res,[sort.col],[sort.dir]);
+  return res;
+},[workingData,filters,search,sort,showOnly,consolidateConfig]);
 
   const visible=useMemo(()=>columns.filter(c=>config[c]?.visible!==false).sort((a,b)=>(config[a]?.order??0)-(config[b]?.order??0)),[columns,config]);
   const pages=Math.ceil(filtered.length/perPage);
@@ -1331,10 +1448,14 @@ const upload=useCallback(e=>{
       {showDup&&<DupModal columns={columns} data={data} onClose={()=>setShowDup(false)} onShow={handleShow}/>}
       {showQC&&<QCModal columns={columns} data={data} onClose={()=>setShowQC(false)} onShow={handleShow} rules={rules} setRules={setRules}/>}
       {showSummary&&<SummaryModal columns={columns} data={data} onClose={()=>setShowSummary(false)}/>}
+	  {showConsolidate&&<CaseConsolidateModal columns={columns} data={data} onClose={()=>setShowConsolidate(false)} onApply={setConsolidateConfig} currentConfig={consolidateConfig}/>}
       {showCmp&&<CompareModal columns={columns} data={data} onClose={()=>setShowCmp(false)} onShow={handleShow}/>}
       
       <header className="bg-white border-b px-4 py-3 flex items-center justify-between flex-wrap gap-3">
-        <div><h1 className="text-lg font-semibold">PV Line Listing Analyzer</h1><p className="text-sm text-gray-500">{fileName} • {filtered.length.toLocaleString()} of {data.length.toLocaleString()} rows</p></div>
+        <div><h1 className="text-lg font-semibold">PV Line Listing Analyzer</h1><p className="text-sm text-gray-500">
+  {fileName} • {filtered.length.toLocaleString()} of {workingData.length.toLocaleString()} {consolidateConfig?'cases':'rows'}
+  {consolidateConfig&&<span className="ml-2 text-purple-600">(from {data.length} rows)</span>}
+</p></div>
         <div className="flex gap-2">
           <button onClick={exportData} className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200"><Icons.Download/>Export</button>
           <label className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded text-sm cursor-pointer hover:bg-gray-200"><Icons.Upload/>New<input type="file" accept=".xlsx,.xls,.csv" onChange={upload} className="hidden"/></label>
@@ -1346,6 +1467,10 @@ const upload=useCallback(e=>{
         <ColManager columns={columns} config={config} setConfig={setConfig} frozen={frozen} setFrozen={setFrozen}/>
         <ViewsManager views={views} setViews={setViews} config={config} frozen={frozen} applyView={applyView}/>
         <button onClick={()=>setShowSummary(true)} className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"><Icons.PieChart/>Summary</button>
+		<button onClick={()=>consolidateConfig?setConsolidateConfig(null):setShowConsolidate(true)} className={`flex items-center gap-2 px-3 py-2 rounded text-sm ${consolidateConfig?'bg-purple-600 text-white':'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}>
+  <Icons.Layers/>{consolidateConfig?'Exit Case View':'1 Row/Case'}
+</button>
+{consolidateConfig&&<button onClick={()=>setShowConsolidate(true)} className="px-2 py-2 text-purple-600 hover:bg-purple-50 rounded"><Icons.Edit/></button>}
         <button onClick={()=>setShowDup(true)} className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded text-sm hover:bg-gray-200"><Icons.Copy/>Duplicates</button>
         <button onClick={()=>setShowCmp(true)} className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded text-sm hover:bg-gray-200"><Icons.GitCompare/>Compare</button>
         <button onClick={()=>setShowQC(true)} className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200"><Icons.AlertTriangle/>QC Rules</button>
@@ -1358,6 +1483,7 @@ const upload=useCallback(e=>{
           <thead className="bg-gray-100 sticky top-0 z-20">
             <tr>
               <th className="p-2 border-b border-r bg-gray-100" style={{position:'sticky',left:0,zIndex:25,minWidth:50}}>#</th>
+			  {consolidateConfig&&<th className="p-2 border-b border-r bg-purple-100 text-center text-purple-700" style={{minWidth:60}}>Rows</th>}
               {visible.map(col=>{const fr=frozen.includes(col);const st={...getFrozenStyle(col),minWidth:150};if(fr)st.background='#e5e7eb';
                 const hasFilter=filters[col]&&(filters[col].type==='date'?(filters[col].dateRange?.from||filters[col].dateRange?.to||filters[col].includeBlank):filters[col].type==='values'&&filters[col].values?.length);
                 return<th key={col} className="p-2 border-b border-r text-left bg-gray-100" style={st}>
@@ -1374,8 +1500,20 @@ const upload=useCallback(e=>{
             {pageData.map((row,i)=>{const idx=(page-1)*perPage+i;const oi=data.indexOf(row);const hl=highlight.includes(oi);
               return<tr key={i} className={`border-b hover:bg-gray-50 ${hl?'bg-amber-50':''}`}>
                 <td className="p-2 border-r text-gray-400" style={{position:'sticky',left:0,zIndex:4,background:hl?'#fef3c7':'#fff',minWidth:50}}>{idx+1}</td>
-                {visible.map(col=>{const fr=frozen.includes(col);const st={...getFrozenStyle(col),minWidth:150};if(hl)st.background='#fef3c7';else if(fr)st.background='#eff6ff';
-                  return<td key={col} className="p-2 border-r truncate max-w-[250px]" style={st} title={String(row[col]||'')}>{row[col] instanceof Date?row[col].toLocaleDateString():String(row[col]??'')}</td>;})}
+				{consolidateConfig&&<td className={`p-2 border-r text-center ${row._rowCount>1?'bg-purple-50 text-purple-700 font-medium':'text-gray-400'}`}>{row._rowCount||1}</td>}
+                {visible.map(col=>{
+  const fr=frozen.includes(col);
+  const st={...getFrozenStyle(col),minWidth:150};
+  if(hl)st.background='#fef3c7';else if(fr)st.background='#eff6ff';
+  const isConcat=consolidateConfig&&row._concatCols?.includes(col);
+  if(isConcat)st.background='#fef3c7';
+  const val=row[col];
+  const displayVal=val instanceof Date?val.toLocaleDateString():String(val??'');
+  return<td key={col} className="p-2 border-r truncate max-w-[250px]" style={st} title={displayVal}>
+    {isConcat&&<span className="text-amber-600 mr-1" title="Multiple values concatenated">●</span>}
+    {displayVal}
+  </td>;
+})}
               </tr>;})}
             {pageData.length===0&&<tr><td colSpan={visible.length+1} className="p-8 text-center text-gray-500">No data</td></tr>}
           </tbody>
